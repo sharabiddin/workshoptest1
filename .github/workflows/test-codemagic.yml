@@ -1,0 +1,162 @@
+workflows:
+  client_release:
+    working_directory: apps/client
+    triggering:
+      cancel_previous_builds: true
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "client-v*"
+          include: true
+
+    name: "Voyager Client Release"
+    environment:
+
+      ios_signing:
+        provisioning_profiles:
+          - VoyagerClient
+        certificates:
+          - Voyager
+      vars:
+        bundle_id: "com.example.client.voyager.dev"
+        android_firebase_app_id: "1:test:android:6c04859df0bd08be78f08d"
+        tester_group: "uat"
+
+      flutter: "3.32.2"
+
+      java: "17"
+      groups:
+        - firebase
+
+    integrations:
+      app_store_connect: Personal4
+    scripts:
+      - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
+        script: keychain initialize
+      - name: Set up signing certificate
+        script: keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+      - name: Melos clean
+        script: |
+          dart pub global activate melos
+          melos clean
+
+      - name: Melos Bootstrap
+        script: |
+          dart pub global activate melos
+          melos bootstrap
+#      - name: Build Web
+#        script: |
+#          flutter build web --dart-define=WEB_ENVIRONMENT=dev --release -t lib/main.dart
+#          cd build/web
+#          7z a -r ../web.zip ./*
+      - name: Build iOS IPA
+        script: |
+          dart pub global activate flutterfire_cli
+          flutter build ipa --release --flavor dev -t lib/main.dart --export-options-plist=/Users/builder/export_options.plist
+      - name: Build Android APK
+        script: |
+          flutter build apk --release --flavor dev -t lib/main.dart
+
+
+    artifacts:
+      #      - build/app/outputs/flutter-apk/*.apk
+      - build/ios/ipa/*.ipa
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - $tester_group
+      firebase:
+        firebase_service_account: $voyager_client_firebase_service
+        android:
+          app_id: $android_firebase_app_id
+          artifact_type: 'apk'
+          groups:
+            - $tester_group
+  #        ios:
+  #          app_id: $ios_firebase_app_id
+  #          groups:
+  #            - $tester_group
+
+  admin_release:
+    working_directory: apps/admin
+    triggering:
+      cancel_previous_builds: true
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "admin-v*"
+          include: true
+
+    name: "Voyager Admin Release"
+    environment:
+
+      ios_signing:
+        provisioning_profiles:
+          - VoyagerAdmin
+        certificates:
+          - Voyager
+      vars:
+        bundle_id: "com.example.admin.voyager.dev"
+        android_firebase_app_id: "1:48762648952:android:7e1138e5b903ed6578f08d" # TODO: Replace with actual admin Firebase app ID
+        tester_group: "uat"
+
+      flutter: "3.32.2"
+
+      java: "17"
+      groups:
+        - firebase
+
+    integrations:
+      app_store_connect: Personal4
+    scripts:
+      - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
+        script: keychain initialize
+      - name: Set up signing certificate
+        script: keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
+      - name: Melos clean
+        script: |
+          dart pub global activate melos
+          melos clean
+
+      - name: Melos Bootstrap
+        script: |
+          dart pub global activate melos
+          melos bootstrap
+
+#      - name: Build Web
+#        script: |
+#          flutter build web --dart-define=WEB_ENVIRONMENT=dev --release-t lib/main.dart
+#          cd build/web
+#          7z a -r ../web.zip ./*
+      - name: Build iOS IPA
+        script: |
+          dart pub global activate flutterfire_cli
+          flutter build ipa --release --flavor dev -t lib/main.dart --export-options-plist=/Users/builder/export_options.plist
+      - name: Build Android APK
+        script: |
+          flutter build apk --release --flavor dev -t lib/main.dart
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - $tester_group
+      firebase:
+        firebase_service_account: $voyager_client_firebase_service # TODO: Consider separate admin Firebase service account
+        android:
+          app_id: $android_firebase_app_id
+          artifact_type: 'apk'
+          groups:
+            - $tester_group
+
