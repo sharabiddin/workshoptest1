@@ -37,8 +37,11 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASS }}
         script: |
+          mkdir -p /home/${{ secrets.SERVER_USER }}/app
           cd /home/${{ secrets.SERVER_USER }}/app
           docker load < hello-world-backend.tar.gz
-          docker-compose down
+          docker-compose down || true
           docker-compose up -d
-          docker system prune -f
+          docker ps
+          sleep 5
+          curl -f http://localhost:2214/health || echo "Health check failed"
