@@ -5,7 +5,7 @@ const PORT = 2214;
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.json({ message: 'CI/CD workshop' });
+  res.json({ message: 'CI/CD workshop [updated]' });
 });
 
 app.get('/health', (req, res) => {
